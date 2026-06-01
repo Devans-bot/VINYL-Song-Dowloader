@@ -1,23 +1,20 @@
 /**
- * Downloads the standalone yt-dlp Linux binary (no Python required).
- * Runs on Vercel/Linux builds so serverless downloads work.
+ * Downloads standalone yt-dlp for Linux (no Python). Required on Vercel.
  */
-import { chmod, mkdir, access } from "node:fs/promises";
+import { chmod, mkdir, access, stat } from "node:fs/promises";
 import { createWriteStream } from "node:fs";
 import { pipeline } from "node:stream/promises";
 import { join } from "node:path";
 
 const BIN_DIR = join(process.cwd(), "bin");
 const OUT_PATH = join(BIN_DIR, "yt-dlp");
-const RELEASE_API = "https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest";
+
+/** Direct GitHub redirect — no API rate limits */
+const DIRECT_URL =
+  "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux";
 
 const isLinux = process.platform === "linux";
 const isVercel = process.env.VERCEL === "1";
-
-if (!isLinux && !isVercel) {
-  console.log("[yt-dlp] Skipping standalone download (local dev uses system yt-dlp).");
-  process.exit(0);
-}
 
 async function exists(path) {
   try {
@@ -28,39 +25,77 @@ async function exists(path) {
   }
 }
 
-async function downloadStandalone() {
-  console.log("[yt-dlp] Fetching latest standalone Linux binary...");
-
-  const res = await fetch(RELEASE_API, {
-    headers: { Accept: "application/vnd.github+json", "User-Agent": "vinyl-downloader" },
+async function downloadFrom(url, label) {
+  console.log(`[yt-dlp] Downloading (${label})...`);
+  const res = await fetch(url, {
+    redirect: "follow",
+    headers: { "User-Agent": "vinyl-downloader-build" },
   });
 
   if (!res.ok) {
-    throw new Error(`GitHub API error: ${res.status}`);
-  }
-
-  const release = await res.json();
-  const asset = release.assets?.find((a) => a.name === "yt-dlp_linux");
-
-  if (!asset?.browser_download_url) {
-    throw new Error("yt-dlp_linux asset not found in latest release");
-  }
-
-  const binRes = await fetch(asset.browser_download_url);
-  if (!binRes.ok) {
-    throw new Error(`Download failed: ${binRes.status}`);
+    throw new Error(`${label} failed: HTTP ${res.status}`);
   }
 
   await mkdir(BIN_DIR, { recursive: true });
-  await pipeline(binRes.body, createWriteStream(OUT_PATH));
+  await pipeline(res.body, createWriteStream(OUT_PATH));
   await chmod(OUT_PATH, 0o755);
 
-  console.log("[yt-dlp] Standalone binary ready at bin/yt-dlp");
+  const { size } = await stat(OUT_PATH);
+  if (size < 1_000_000) {
+    throw new Error(`${label}: file too small (${size} bytes), likely not a binary`);
+  }
+
+  console.log(`[yt-dlp] OK — bin/yt-dlp (${(size / 1024 / 1024).toFixed(1)} MB)`);
 }
 
-if (await exists(OUT_PATH) && process.env.FORCE_YTDLP_DOWNLOAD !== "1") {
-  console.log("[yt-dlp] bin/yt-dlp already exists, skipping download.");
-  process.exit(0);
+async function main() {
+  if (!isLinux && !isVercel) {
+    console.log("[yt-dlp] Skip (not Linux/Vercel — use local brew yt-dlp).");
+    return;
+  }
+
+  if ((await exists(OUT_PATH)) && process.env.FORCE_YTDLP_DOWNLOAD !== "1") {
+    const { size } = await stat(OUT_PATH);
+    console.log(`[yt-dlp] Already present (${(size / 1024 / 1024).toFixed(1)} MB), skip.`);
+    return;
+  }
+
+  console.log("[yt-dlp] Platform:", process.platform, "| VERCEL:", process.env.VERCEL);
+
+  try {
+    await downloadFrom(DIRECT_URL, "direct");
+  } catch (directErr) {
+    console.warn("[yt-dlp] Direct download failed:", directErr.message);
+    console.log("[yt-dlp] Trying GitHub API fallback...");
+
+    const apiRes = await fetch(
+      "https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest",
+      {
+        headers: {
+          Accept: "application/vnd.github+json",
+          "User-Agent": "vinyl-downloader-build",
+          ...(process.env.GITHUB_TOKEN
+            ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` }
+            : {}),
+        },
+      }
+    );
+
+    if (!apiRes.ok) {
+      throw new Error(`GitHub API ${apiRes.status} (and direct download failed)`);
+    }
+
+    const release = await apiRes.json();
+    const asset = release.assets?.find((a) => a.name === "yt-dlp_linux");
+    if (!asset?.browser_download_url) {
+      throw new Error("yt-dlp_linux not found in release assets");
+    }
+
+    await downloadFrom(asset.browser_download_url, "api");
+  }
 }
 
-await downloadStandalone();
+main().catch((err) => {
+  console.error("[yt-dlp] FATAL:", err.message);
+  process.exit(1);
+});
