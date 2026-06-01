@@ -64,6 +64,17 @@ If the page does not load, check the terminal for errors and ensure nothing else
 
 Search works on Vercel; MP3 download needs this bundled setup (not `brew install` on the server).
 
+### YouTube “bot” block on Vercel
+
+YouTube often blocks datacenter IPs. If downloads fail with “Sign in to confirm you're not a bot”:
+
+1. Export `cookies.txt` from your browser while logged into YouTube (Netscape format).
+2. Base64-encode: `base64 -i cookies.txt | tr -d '\n' | pbcopy`
+3. Add env var **`YOUTUBE_COOKIES_BASE64`** in Vercel → Settings → Environment Variables.
+4. Redeploy.
+
+Or run locally: `npm run dev` (home IP usually works without cookies).
+
 ## Legal
 
 Only download content you have the right to use. Respect YouTube’s Terms of Service and copyright laws in your region.

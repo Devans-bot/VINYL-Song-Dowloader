@@ -3,6 +3,7 @@ import { createReadStream, existsSync, mkdirSync, statSync, unlinkSync } from "f
 import { join } from "path";
 import { randomUUID } from "crypto";
 import { Readable } from "node:stream";
+import { downloadAudioAsMp3, formatDownloadError } from "@/lib/ytdlp-download";
 import {
   getDownloadTempDir,
   getFfmpegPath,
@@ -15,18 +16,6 @@ export const maxDuration = 300;
 
 function sanitizeFilename(name: string): string {
   return name.replace(/[<>:"/\\|?*\x00-\x1f]/g, "").slice(0, 120) || "audio";
-}
-
-function formatYtdlpError(err: unknown): string {
-  if (err instanceof Error) {
-    const withStderr = err as Error & { stderr?: string };
-    const detail = withStderr.stderr?.trim() || err.message;
-    if (detail) return detail.split("\n").slice(-3).join(" ");
-  }
-  if (isVercel()) {
-    return "Download failed on Vercel. Check function logs or try a shorter video.";
-  }
-  return "Download failed. Ensure yt-dlp and ffmpeg are installed locally.";
 }
 
 export async function GET(request: NextRequest) {
@@ -58,10 +47,8 @@ export async function GET(request: NextRequest) {
   try {
     youtubedl = getYtdlp();
   } catch (err) {
-    return NextResponse.json(
-      { error: formatYtdlpError(err), code: "YTDLP_MISSING" },
-      { status: 500 }
-    );
+    const { message, code } = formatDownloadError(err);
+    return NextResponse.json({ error: message, code }, { status: 500 });
   }
 
   const tmpDir = getDownloadTempDir();
@@ -71,16 +58,7 @@ export async function GET(request: NextRequest) {
   const url = `https://www.youtube.com/watch?v=${videoId}`;
 
   try {
-    await youtubedl(url, {
-      extractAudio: true,
-      audioFormat: "mp3",
-      audioQuality: 0,
-      output: `${outputBase}.%(ext)s`,
-      noPlaylist: true,
-      noWarnings: true,
-      preferFreeFormats: true,
-      ffmpegLocation: ffmpegPath,
-    });
+    await downloadAudioAsMp3(youtubedl, url, outputBase, ffmpegPath);
 
     const mp3Path = `${outputBase}.mp3`;
     if (!existsSync(mp3Path)) {
@@ -114,9 +92,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (err) {
-    return NextResponse.json(
-      { error: formatYtdlpError(err), code: "DOWNLOAD_FAILED" },
-      { status: 500 }
-    );
+    const { message, code } = formatDownloadError(err);
+    return NextResponse.json({ error: message, code }, { status: 500 });
   }
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { CookiesHelp } from "@/components/CookiesHelp";
 import { ApiKeySetupHelp, ApiNotEnabledHelp } from "@/components/SetupHelp";
 import { SearchBar } from "@/components/SearchBar";
 import { VideoCard } from "@/components/VideoCard";
@@ -147,6 +148,9 @@ export default function Home() {
             <ApiNotEnabledHelp />
           ) : errorCode === "MISSING_API_KEY" || error.includes("API key") ? (
             <ApiKeySetupHelp />
+          ) : errorCode === "YOUTUBE_BOT_BLOCK" ||
+            /not a bot|Sign in to confirm|cookies-from-browser/i.test(error) ? (
+            <CookiesHelp />
           ) : /python3|No such file or directory/i.test(error) ? (
             <div className="space-y-2 text-left">
               <p className="font-medium">Server needs a fresh deploy.</p>
