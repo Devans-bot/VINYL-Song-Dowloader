@@ -1,6 +1,12 @@
 import { mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import type { create } from "youtube-dl-exec";
+import {
+  CookiesFormatError,
+  decodeCookiesFromEnv,
+  isCookiesError,
+  normalizeNetscapeCookies,
+} from "@/lib/cookies";
 import { getDownloadTempDir } from "@/lib/ytdlp";
 
 type YtdlpFn = ReturnType<typeof create>;
@@ -25,13 +31,23 @@ export function isYoutubeBotError(err: unknown): boolean {
   );
 }
 
-function prepareCookiesFile(tmpDir: string): string | undefined {
-  const b64 = process.env.YOUTUBE_COOKIES_BASE64?.trim();
-  if (!b64) return undefined;
-
+async function prepareCookiesFile(tmpDir: string): Promise<string | undefined> {
   mkdirSync(tmpDir, { recursive: true });
   const cookiesPath = join(tmpDir, "youtube-cookies.txt");
-  writeFileSync(cookiesPath, Buffer.from(b64, "base64").toString("utf-8"), "utf-8");
+
+  const url = process.env.YOUTUBE_COOKIES_URL?.trim();
+  if (url) {
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) throw new Error(`Failed to fetch cookies URL: ${res.status}`);
+    const text = normalizeNetscapeCookies(await res.text());
+    writeFileSync(cookiesPath, text, "utf-8");
+    return cookiesPath;
+  }
+
+  if (!process.env.YOUTUBE_COOKIES_BASE64?.trim()) return undefined;
+
+  const text = decodeCookiesFromEnv();
+  writeFileSync(cookiesPath, text, "utf-8");
   return cookiesPath;
 }
 
@@ -42,7 +58,7 @@ export async function downloadAudioAsMp3(
   ffmpegPath: string
 ): Promise<void> {
   const tmpDir = getDownloadTempDir();
-  const cookies = prepareCookiesFile(tmpDir);
+  const cookies = await prepareCookiesFile(tmpDir);
 
   const baseFlags = {
     extractAudio: true,
@@ -77,6 +93,16 @@ export async function downloadAudioAsMp3(
 }
 
 export function formatDownloadError(err: unknown): { message: string; code: string } {
+  if (err instanceof CookiesFormatError || isCookiesError(err)) {
+    return {
+      code: "COOKIES_INVALID",
+      message:
+        err instanceof Error
+          ? err.message
+          : "Invalid cookies file. Re-encode with scripts/encode-cookies-for-vercel.mjs",
+    };
+  }
+
   if (isYoutubeBotError(err)) {
     return {
       code: "YOUTUBE_BOT_BLOCK",

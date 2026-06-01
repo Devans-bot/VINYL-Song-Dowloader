@@ -148,6 +148,9 @@ export default function Home() {
             <ApiNotEnabledHelp />
           ) : errorCode === "MISSING_API_KEY" || error.includes("API key") ? (
             <ApiKeySetupHelp />
+          ) : errorCode === "COOKIES_INVALID" ||
+            /Netscape format cookies|invalid length.*cookie/i.test(error) ? (
+            <CookiesHelp invalidFormat />
           ) : errorCode === "YOUTUBE_BOT_BLOCK" ||
             /not a bot|Sign in to confirm|cookies-from-browser/i.test(error) ? (
             <CookiesHelp />
