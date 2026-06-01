@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["youtube-dl-exec", "ffmpeg-static"],
   outputFileTracingIncludes: {
     "/api/download": [
-      "./node_modules/youtube-dl-exec/bin/**/*",
+      "./bin/yt-dlp",
       "./node_modules/ffmpeg-static/**/*",
     ],
   },

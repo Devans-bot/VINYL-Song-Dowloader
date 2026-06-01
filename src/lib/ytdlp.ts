@@ -28,16 +28,23 @@ function bundledYtdlpPath(): string {
   return join(process.cwd(), "node_modules", "youtube-dl-exec", "bin", "yt-dlp");
 }
 
+/** Standalone Linux binary (no Python) — created during Vercel build */
+function standaloneYtdlpPath(): string {
+  return join(process.cwd(), "bin", "yt-dlp");
+}
+
 export function getYtdlp(): YtdlpFn {
   if (cachedYtdlp) return cachedYtdlp;
 
   if (isVercel()) {
-    const bundled = bundledYtdlpPath();
-    if (!existsSync(bundled)) {
-      throw new Error("yt-dlp binary was not included in the deployment bundle.");
+    const standalone = standaloneYtdlpPath();
+    if (existsSync(standalone)) {
+      cachedYtdlp = create(standalone);
+      return cachedYtdlp;
     }
-    cachedYtdlp = create(bundled);
-    return cachedYtdlp;
+    throw new Error(
+      "Standalone yt-dlp missing. Redeploy after the latest build (bin/yt-dlp)."
+    );
   }
 
   for (const binaryPath of SYSTEM_YTDLP_PATHS) {

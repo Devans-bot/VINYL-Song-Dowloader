@@ -147,6 +147,14 @@ export default function Home() {
             <ApiNotEnabledHelp />
           ) : errorCode === "MISSING_API_KEY" || error.includes("API key") ? (
             <ApiKeySetupHelp />
+          ) : /python3|No such file or directory/i.test(error) ? (
+            <div className="space-y-2 text-left">
+              <p className="font-medium">Server needs a fresh deploy.</p>
+              <p className="text-red-200/90">
+                Push the latest code to GitHub and redeploy on Vercel. The build
+                installs a standalone yt-dlp (no Python).
+              </p>
+            </div>
           ) : errorCode === "FFMPEG_MISSING" && /brew install/i.test(error) ? (
             <div className="space-y-2 text-left">
               <p className="font-medium">

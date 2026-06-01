@@ -22,6 +22,7 @@
 .DS_Store
 *.pem
 .tmp-downloads/
+/bin/yt-dlp
 
 # debug
 npm-debug.log*
