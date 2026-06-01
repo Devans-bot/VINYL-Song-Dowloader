@@ -3,12 +3,15 @@ import { createReadStream, existsSync, mkdirSync, statSync, unlinkSync } from "f
 import { join } from "path";
 import { randomUUID } from "crypto";
 import { Readable } from "node:stream";
-import { getFfmpegHint, getYtdlp } from "@/lib/ytdlp";
+import {
+  getDownloadTempDir,
+  getFfmpegPath,
+  getYtdlp,
+  isVercel,
+} from "@/lib/ytdlp";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
-
-const TMP_DIR = join(process.cwd(), ".tmp-downloads");
 
 function sanitizeFilename(name: string): string {
   return name.replace(/[<>:"/\\|?*\x00-\x1f]/g, "").slice(0, 120) || "audio";
@@ -20,13 +23,24 @@ function formatYtdlpError(err: unknown): string {
     const detail = withStderr.stderr?.trim() || err.message;
     if (detail) return detail.split("\n").slice(-3).join(" ");
   }
-  return "Download failed. Ensure yt-dlp and ffmpeg are installed.";
+  if (isVercel()) {
+    return "Download failed on Vercel. Check function logs or try a shorter video.";
+  }
+  return "Download failed. Ensure yt-dlp and ffmpeg are installed locally.";
 }
 
 export async function GET(request: NextRequest) {
-  const ffmpegHint = getFfmpegHint();
-  if (ffmpegHint) {
-    return NextResponse.json({ error: ffmpegHint, code: "FFMPEG_MISSING" }, { status: 500 });
+  const ffmpegPath = getFfmpegPath();
+  if (!ffmpegPath) {
+    return NextResponse.json(
+      {
+        error: isVercel()
+          ? "Audio converter missing in deployment."
+          : "Install ffmpeg: brew install ffmpeg",
+        code: "FFMPEG_MISSING",
+      },
+      { status: 500 }
+    );
   }
 
   const videoId = request.nextUrl.searchParams.get("videoId")?.trim();
@@ -50,9 +64,10 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  mkdirSync(TMP_DIR, { recursive: true });
+  const tmpDir = getDownloadTempDir();
+  mkdirSync(tmpDir, { recursive: true });
 
-  const outputBase = join(TMP_DIR, randomUUID());
+  const outputBase = join(tmpDir, randomUUID());
   const url = `https://www.youtube.com/watch?v=${videoId}`;
 
   try {
@@ -64,6 +79,7 @@ export async function GET(request: NextRequest) {
       noPlaylist: true,
       noWarnings: true,
       preferFreeFormats: true,
+      ffmpegLocation: ffmpegPath,
     });
 
     const mp3Path = `${outputBase}.mp3`;
@@ -88,7 +104,6 @@ export async function GET(request: NextRequest) {
     });
 
     const webStream = Readable.toWeb(nodeStream) as ReadableStream;
-
     const { size } = statSync(mp3Path);
 
     return new NextResponse(webStream, {

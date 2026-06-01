@@ -56,9 +56,13 @@ If the page does not load, check the terminal for errors and ensure nothing else
 | Search | Browser calls `/api/search` → YouTube Data API returns video metadata |
 | Download | Click a video → `/api/download` uses yt-dlp to extract audio as MP3 |
 
-## Deployment note
+## Deployment on Vercel
 
-MP3 extraction runs **server-side** with yt-dlp and ffmpeg. This works well on your machine or a VPS. **Vercel serverless** has size/time limits and may not support yt-dlp reliably — use local dev or a Node-friendly host for downloads.
+1. Add `YOUTUBE_API_KEY` in [Vercel Project Settings → Environment Variables](https://vercel.com/docs/projects/environment-variables).
+2. Redeploy after pushing the latest code (downloads use bundled **yt-dlp** + **ffmpeg-static**).
+3. Downloads can take **30–60 seconds**; Hobby plan allows up to **60s** per function (`vercel.json`).
+
+Search works on Vercel; MP3 download needs this bundled setup (not `brew install` on the server).
 
 ## Legal
 

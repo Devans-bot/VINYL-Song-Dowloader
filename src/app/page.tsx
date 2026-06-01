@@ -147,6 +147,16 @@ export default function Home() {
             <ApiNotEnabledHelp />
           ) : errorCode === "MISSING_API_KEY" || error.includes("API key") ? (
             <ApiKeySetupHelp />
+          ) : errorCode === "FFMPEG_MISSING" && /brew install/i.test(error) ? (
+            <div className="space-y-2 text-left">
+              <p className="font-medium">
+                Downloads on Vercel need a redeploy with the latest code.
+              </p>
+              <p className="text-red-200/90">
+                Push the latest commit to GitHub and redeploy. MP3 conversion uses
+                bundled ffmpeg on Vercel (not Homebrew).
+              </p>
+            </div>
           ) : (
             error
           )}

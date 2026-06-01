@@ -4,56 +4,84 @@ import { create, type Payload } from "youtube-dl-exec";
 
 type YtdlpFn = ReturnType<typeof create>;
 
-const SYSTEM_PATHS = [
+const SYSTEM_YTDLP_PATHS = [
   process.env.YT_DLP_PATH,
   "/opt/homebrew/bin/yt-dlp",
   "/usr/local/bin/yt-dlp",
   "/usr/bin/yt-dlp",
 ].filter((p): p is string => Boolean(p));
 
-let cached: YtdlpFn | null = null;
+const SYSTEM_FFMPEG_PATHS = [
+  "/opt/homebrew/bin/ffmpeg",
+  "/usr/local/bin/ffmpeg",
+  "/usr/bin/ffmpeg",
+];
+
+let cachedYtdlp: YtdlpFn | null = null;
+let cachedFfmpeg: string | null | undefined;
+
+export function isVercel(): boolean {
+  return process.env.VERCEL === "1";
+}
+
+function bundledYtdlpPath(): string {
+  return join(process.cwd(), "node_modules", "youtube-dl-exec", "bin", "yt-dlp");
+}
 
 export function getYtdlp(): YtdlpFn {
-  if (cached) return cached;
+  if (cachedYtdlp) return cachedYtdlp;
 
-  for (const binaryPath of SYSTEM_PATHS) {
+  if (isVercel()) {
+    const bundled = bundledYtdlpPath();
+    if (!existsSync(bundled)) {
+      throw new Error("yt-dlp binary was not included in the deployment bundle.");
+    }
+    cachedYtdlp = create(bundled);
+    return cachedYtdlp;
+  }
+
+  for (const binaryPath of SYSTEM_YTDLP_PATHS) {
     if (existsSync(binaryPath)) {
-      cached = create(binaryPath);
-      return cached;
+      cachedYtdlp = create(binaryPath);
+      return cachedYtdlp;
     }
   }
 
-  const bundled = join(
-    process.cwd(),
-    "node_modules",
-    "youtube-dl-exec",
-    "bin",
-    "yt-dlp"
-  );
-
+  const bundled = bundledYtdlpPath();
   if (existsSync(bundled)) {
     if (/\s/.test(bundled)) {
       throw new Error(
-        "yt-dlp cannot run from a folder path with spaces. Install globally: brew install yt-dlp ffmpeg"
+        "yt-dlp cannot run from a folder path with spaces. Install: brew install yt-dlp ffmpeg"
       );
     }
-    cached = create(bundled);
-    return cached;
+    cachedYtdlp = create(bundled);
+    return cachedYtdlp;
   }
 
-  throw new Error(
-    "yt-dlp is not installed. Run: brew install yt-dlp ffmpeg"
-  );
+  throw new Error("yt-dlp is not installed. Run: brew install yt-dlp ffmpeg");
 }
 
-export function getFfmpegHint(): string | null {
-  const paths = [
-    "/opt/homebrew/bin/ffmpeg",
-    "/usr/local/bin/ffmpeg",
-    "/usr/bin/ffmpeg",
-  ];
-  if (paths.some(existsSync)) return null;
-  return "Install ffmpeg: brew install ffmpeg";
+export function getFfmpegPath(): string | null {
+  if (cachedFfmpeg !== undefined) return cachedFfmpeg;
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const ffmpegStatic = require("ffmpeg-static") as string | null;
+    if (ffmpegStatic && existsSync(ffmpegStatic)) {
+      cachedFfmpeg = ffmpegStatic;
+      return cachedFfmpeg;
+    }
+  } catch {
+    /* ffmpeg-static optional at import */
+  }
+
+  const system = SYSTEM_FFMPEG_PATHS.find((p) => existsSync(p));
+  cachedFfmpeg = system ?? null;
+  return cachedFfmpeg;
+}
+
+export function getDownloadTempDir(): string {
+  return isVercel() ? "/tmp/vinyl-downloads" : join(process.cwd(), ".tmp-downloads");
 }
 
 export type { Payload };
