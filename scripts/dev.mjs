@@ -4,7 +4,7 @@ import { exec } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
-const PORT = 3003;
+const PORT = 3005;
 const URL = `http://127.0.0.1:${PORT}`;
 const projectRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 
