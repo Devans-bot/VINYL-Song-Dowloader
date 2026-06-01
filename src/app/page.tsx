@@ -144,7 +144,8 @@ export default function Home() {
           role="alert"
           className="retro-panel font-pixel mb-6 border-[#ff6eb4] px-4 py-3 text-[0.5rem] leading-6 text-[#ffb3d9]"
         >
-          {errorCode === "API_NOT_ENABLED" || /blocked/i.test(error) ? (
+          {errorCode === "API_NOT_ENABLED" ||
+          (errorCode !== "YOUTUBE_BOT_BLOCK" && /blocked/i\.test(error)) ? (
             <ApiNotEnabledHelp />
           ) : errorCode === "MISSING_API_KEY" ||
             (errorCode !== "DOWNLOAD_FAILED" && error.includes("API key")) ? (
