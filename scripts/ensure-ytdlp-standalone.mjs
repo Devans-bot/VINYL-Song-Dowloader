@@ -11,7 +11,7 @@ const OUT_PATH = join(BIN_DIR, "yt-dlp");
 
 /** Direct GitHub redirect — no API rate limits */
 const DIRECT_URL =
-  "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux";
+  "https://github.com/yt-dlp/yt-dlp-nightly-builds/releases/latest/download/yt-dlp_linux";
 
 const isLinux = process.platform === "linux";
 const isVercel = process.env.VERCEL === "1";
@@ -69,7 +69,7 @@ async function main() {
     console.log("[yt-dlp] Trying GitHub API fallback...");
 
     const apiRes = await fetch(
-      "https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest",
+      "https://api.github.com/repos/yt-dlp/yt-dlp-nightly-builds/releases/latest",
       {
         headers: {
           Accept: "application/vnd.github+json",
