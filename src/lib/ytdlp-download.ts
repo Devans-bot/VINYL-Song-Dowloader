@@ -26,7 +26,7 @@ export function isYoutubeBotError(err: unknown): boolean {
     err instanceof Error
       ? `${err.message} ${(err as Error & { stderr?: string }).stderr ?? ""}`
       : String(err);
-  return /not a bot|sign in to confirm|cookies-from-browser|LOGIN_REQUIRED/i.test(
+  return /not a bot|sign in to confirm|cookies-from-browser|LOGIN_REQUIRED|Requested format is not available/i.test(
     text
   );
 }
@@ -61,6 +61,7 @@ export async function downloadAudioAsMp3(
   const cookies = await prepareCookiesFile(tmpDir);
 
   const baseFlags = {
+    format: "bestaudio/best",
     extractAudio: true,
     audioFormat: "mp3" as const,
     audioQuality: 0,
