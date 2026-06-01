@@ -1,0 +1,65 @@
+# VINYL DOWNLOADER
+
+Retro 90s-style YouTube search and MP3 ripper. Built with Next.js, YouTube Data API v3, and yt-dlp.
+
+## Features
+
+- Keyword search powered by YouTube Data API v3
+- Video results with thumbnails, titles, and channel names
+- One-click MP3 download (audio extraction via yt-dlp)
+- Load more results with pagination
+
+## Prerequisites
+
+1. **YouTube API key** — [Google Cloud Console](https://console.cloud.google.com/)
+   - Create a project
+   - Enable **YouTube Data API v3**
+   - Create an API key under Credentials
+
+2. **yt-dlp** and **ffmpeg** (required for MP3 downloads)
+
+   ```bash
+   brew install yt-dlp ffmpeg   # macOS
+   ```
+
+   > If your project folder path contains **spaces**, you must use the Homebrew `yt-dlp` (not only the bundled binary).
+
+## Setup
+
+```bash
+npm install
+cp .env.example .env.local
+```
+
+Edit `.env.local` and set your key:
+
+```
+YOUTUBE_API_KEY=your_actual_api_key
+```
+
+Run the dev server (opens your browser automatically):
+
+```bash
+cd "/Users/divyansh/Desktop/Ecommerce-test/SOng downloader"
+npm install
+npm run dev
+```
+
+Use **http://127.0.0.1:3003** or **http://localhost:3003** (not port 3000).
+
+If the page does not load, check the terminal for errors and ensure nothing else is using port 3003.
+
+## How it works
+
+| Step | What happens |
+|------|----------------|
+| Search | Browser calls `/api/search` → YouTube Data API returns video metadata |
+| Download | Click a video → `/api/download` uses yt-dlp to extract audio as MP3 |
+
+## Deployment note
+
+MP3 extraction runs **server-side** with yt-dlp and ffmpeg. This works well on your machine or a VPS. **Vercel serverless** has size/time limits and may not support yt-dlp reliably — use local dev or a Node-friendly host for downloads.
+
+## Legal
+
+Only download content you have the right to use. Respect YouTube’s Terms of Service and copyright laws in your region.
