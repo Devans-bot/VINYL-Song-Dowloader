@@ -60,8 +60,8 @@ export async function GET(request: NextRequest) {
   try {
     await downloadAudioAsMp3(youtubedl, url, outputBase, ffmpegPath);
 
-    const mp3Path = `${outputBase}.mp3`;
-    if (!existsSync(mp3Path)) {
+    const m4aPath = `${outputBase}.m4a`;
+    if (!existsSync(m4aPath)) {
       return NextResponse.json(
         {
           error: "Audio file was not created. Try again or pick another video.",
@@ -71,22 +71,22 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const filename = `${sanitizeFilename(title)}.mp3`;
-    const nodeStream = createReadStream(mp3Path);
+    const filename = `${sanitizeFilename(title)}.m4a`;
+    const nodeStream = createReadStream(m4aPath);
     nodeStream.on("close", () => {
       try {
-        unlinkSync(mp3Path);
+        unlinkSync(m4aPath);
       } catch {
         /* ignore cleanup errors */
       }
     });
 
     const webStream = Readable.toWeb(nodeStream) as ReadableStream;
-    const { size } = statSync(mp3Path);
+    const { size } = statSync(m4aPath);
 
     return new NextResponse(webStream, {
       headers: {
-        "Content-Type": "audio/mpeg",
+        "Content-Type": "audio/mp4",
         "Content-Disposition": `attachment; filename="${encodeURIComponent(filename)}"`,
         "Content-Length": String(size),
       },

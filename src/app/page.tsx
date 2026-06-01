@@ -112,7 +112,7 @@ export default function Home() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${video.title.replace(/[<>:"/\\|?*]/g, "").slice(0, 80)}.mp3`;
+      a.download = `${video.title.replace(/[<>:"/\\|?*]/g, "").slice(0, 80)}.m4a`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -169,7 +169,7 @@ export default function Home() {
                 Downloads on Vercel need a redeploy with the latest code.
               </p>
               <p className="text-red-200/90">
-                Push the latest commit to GitHub and redeploy. MP3 conversion uses
+                Push the latest commit to GitHub and redeploy. Audio conversion uses
                 bundled ffmpeg on Vercel (not Homebrew).
               </p>
             </div>
@@ -194,7 +194,7 @@ export default function Home() {
       {videos.length > 0 && (
         <>
           <p className="font-pixel mb-4 text-[0.45rem] text-[var(--crt-cyan)]">
-            {videos.length} TRACK{videos.length !== 1 ? "S" : ""} — CLICK TO RIP MP3
+            {videos.length} TRACK{videos.length !== 1 ? "S" : ""} — CLICK TO RIP AUDIO
           </p>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {videos.map((video) => (

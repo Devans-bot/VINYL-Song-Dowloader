@@ -61,14 +61,12 @@ export async function downloadAudioAsMp3(
   const cookies = await prepareCookiesFile(tmpDir);
 
   const baseFlags = {
-    format: "bestaudio/best",
+    format: "m4a/bestaudio/best",
     extractAudio: true,
-    audioFormat: "mp3" as const,
-    audioQuality: 0,
-    output: `${outputBase}.%(ext)s`,
+    output: `${outputBase}.m4a`,
     noPlaylist: true,
     noWarnings: true,
-    preferFreeFormats: true,
+    preferFreeFormats: false,
     ffmpegLocation: ffmpegPath,
     userAgent: USER_AGENT,
     referer: "https://www.youtube.com/",
