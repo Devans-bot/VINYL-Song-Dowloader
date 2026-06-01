@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { CookiesHelp } from "@/components/CookiesHelp";
 import { ApiKeySetupHelp, ApiNotEnabledHelp } from "@/components/SetupHelp";
 import { SearchBar } from "@/components/SearchBar";
 import { VideoCard } from "@/components/VideoCard";
@@ -145,35 +144,11 @@ export default function Home() {
           className="retro-panel font-pixel mb-6 border-[#ff6eb4] px-4 py-3 text-[0.5rem] leading-6 text-[#ffb3d9]"
         >
           {errorCode === "API_NOT_ENABLED" ||
-          (errorCode !== "YOUTUBE_BOT_BLOCK" && /blocked/i\.test(error)) ? (
+          (errorCode !== "YOUTUBE_BOT_BLOCK" && /blocked/i.test(error)) ? (
             <ApiNotEnabledHelp />
           ) : errorCode === "MISSING_API_KEY" ||
             (errorCode !== "DOWNLOAD_FAILED" && error.includes("API key")) ? (
             <ApiKeySetupHelp />
-          ) : errorCode === "COOKIES_INVALID" ||
-            /Netscape format cookies|invalid length.*cookie/i.test(error) ? (
-            <CookiesHelp invalidFormat />
-          ) : errorCode === "YOUTUBE_BOT_BLOCK" ||
-            /not a bot|Sign in to confirm|cookies-from-browser/i.test(error) ? (
-            <CookiesHelp />
-          ) : /python3|No such file or directory/i.test(error) ? (
-            <div className="space-y-2 text-left">
-              <p className="font-medium">Server needs a fresh deploy.</p>
-              <p className="text-red-200/90">
-                Push the latest code to GitHub and redeploy on Vercel. The build
-                installs a standalone yt-dlp (no Python).
-              </p>
-            </div>
-          ) : errorCode === "FFMPEG_MISSING" && /brew install/i.test(error) ? (
-            <div className="space-y-2 text-left">
-              <p className="font-medium">
-                Downloads on Vercel need a redeploy with the latest code.
-              </p>
-              <p className="text-red-200/90">
-                Push the latest commit to GitHub and redeploy. Audio conversion uses
-                bundled ffmpeg on Vercel (not Homebrew).
-              </p>
-            </div>
           ) : (
             error
           )}
