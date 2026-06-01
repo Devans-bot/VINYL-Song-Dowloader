@@ -146,7 +146,8 @@ export default function Home() {
         >
           {errorCode === "API_NOT_ENABLED" || /blocked/i.test(error) ? (
             <ApiNotEnabledHelp />
-          ) : errorCode === "MISSING_API_KEY" || error.includes("API key") ? (
+          ) : errorCode === "MISSING_API_KEY" ||
+            (errorCode !== "DOWNLOAD_FAILED" && error.includes("API key")) ? (
             <ApiKeySetupHelp />
           ) : errorCode === "COOKIES_INVALID" ||
             /Netscape format cookies|invalid length.*cookie/i.test(error) ? (
